@@ -12,7 +12,7 @@ This app contains both backend and frontend in a single repository.
 ### How to run it
 Clone the code repository
 ```
-$ git clone git@github.com:abiodunjames/NodeJs-Todo-List.git
+$ git clone git@github.com:ElephantechAI/To-Do-List-App.git
 ```
 Navigate to the root directory.
 
