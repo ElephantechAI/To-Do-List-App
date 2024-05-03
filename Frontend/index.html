@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App with Chat</title>
+    <!-- Link to external CSS file for styling -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <h2>To-Do App</h2>
+        <!-- Search input field -->
+        <div class="search-section">
+            <input type="text" v-model="searchQuery" placeholder="Search by title">
+        </div>
+        <div class="line-break"></div>
+        <!-- Sorting dropdown -->
+        <div class="sorting-section">
+            <select v-model="sortMethod">
+                <option value="description">Sort by Description</option>
+                <option value="id">Sort by ID</option>
+            </select>
+        </div>
+        <div class="line-break"></div>
+        <!-- Add notes section -->
+        <div class="add-notes-section">
+            <input id="newNotes"/>&nbsp;
+            <button @click="addNewNotes()">Add Notes</button>
+        </div>
+
+        <!-- Animated list of notes -->
+        <transition-group name="fade" tag="div">
+            <p v-for="note in filteredNotes" :key="note.id">
+                <b>*{{note.description}}</b>&nbsp;
+                <!-- and also a button to delete given notes -->
+                <!-- we need to pass the id of the notes  to be delete it -->
+                <button @click="deleteNotes(note.id)" class="delete-button">Delete Notes</button>
+            </p>
+        </transition-group>
+
+        <!-- Chat section -->
+        <div class="chat-section">
+            <h3>Chat</h3>
+            <div class="messages">
+                <div v-for="(message, index) in chatMessages" :key="index" class="message">
+                    {{ message }}
+                </div>
+            </div>
+            <input type="text" v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type your message">
+        </div>
+    </div>
+
+    <!-- We also need to add reference to axios js library which we will be using to call our api endpoints -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.8/axios.min.js" integrity="sha512-PJa3oQSLWRB7wHZ7GQ/g+qyv6r4mbuhmiDb8BjSFZ8NZ2a42oTtAq5n0ucWAwcQDlikAtkub+tPVCw4np27WCg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Script tags for Axios and Vue -->
+    <script type="module">
+      import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+      // Create a variable to store our API URL 
+      const API_URL="http://localhost:5038/";
+      createApp({
+        data() {
+          return {
+            title: "To-Do App",
+            notes: [],
+            sortMethod: 'description', // Default sorting method
+            searchQuery: '', // Search query
+            newMessage: '', // New message to send
+            chatMessages: [] // Array to store chat messages
+          }
+        },
+        computed: {
+            sortedNotes() {
+                // Sort notes based on selected method
+                return this.notes.slice().sort((a, b) => {
+                    if (this.sortMethod === 'description') {
+                        return a.description.localeCompare(b.description);
+                    } else if (this.sortMethod === 'id') {
+                        return a.id - b.id;
+                    }
+                });
+            },
+            filteredNotes() {
+                // Filter notes based on search query
+                return this.sortedNotes.filter(note =>
+                    note.description.toLowerCase().includes(this.searchQuery.toLowerCase())
+                );
+            }
+        },
+        methods: {
+            async refreshData() {
+                // Fetch notes from the API
+                try {
+                    const response = await axios.get(API_URL + "api/todoapp/GetNotes");
+                    this.notes = response.data;
+                } catch (error) {
+                    console.error('Error fetching notes:', error);
+                }
+            },
+            async addNewNotes() {
+                // Get the new notes description from the input field
+                var newNotes = document.getElementById("newNotes").value;
+                const formData = new FormData();
+                // Attach the new notes to the form data before posting it to the API method 
+                formData.append("newNotes", newNotes);
+
+                try {
+                    // Send a POST request to add the new notes
+                    const response = await axios.post(API_URL + "api/todoapp/AddNotes", formData);
+                    // Once the new notes are added, refresh the data to update the list
+                    this.refreshData();
+                } catch (error) {
+                    console.error('Error adding new notes:', error);
+                }
+            },
+            async deleteNotes(id) {
+                // Delete notes
+                try {
+                    const response = await axios.delete(API_URL + "api/todoapp/DeleteNotes?id=" + id);
+                    this.refreshData();
+                    alert(response.data);
+                } catch (error) {
+                    console.error('Error deleting notes:', error);
+                }
+            },
+            sendMessage() {
+                // Send message
+                if (this.newMessage.trim() !== '') {
+                    this.chatMessages.push(this.newMessage);
+                    this.newMessage = ''; // Clear input field
+                }
+            }
+        },
+        mounted() {
+            // Fetch initial data and start listening for new messages
+            this.refreshData();
+            // You can add code here to listen for new chat messages from the server
+            // For simplicity, this example doesn't include server-side functionality
+        }
+      }).mount('#app')
+    </script>
+    
+    <script src="script.js"></script>
+
+</body>
+</html>
